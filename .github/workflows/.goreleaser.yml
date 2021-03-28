@@ -1,0 +1,23 @@
+before:
+  hooks:
+    - go generate ./cmd/rgt
+builds:
+  - goos:
+      - linux
+      - windows
+    goarch:
+      - amd64
+    ldflags:
+      - -X 'github.com/michal-franc/rgt/internal/app/rgt/commands.Version={{.Env.VERSION}}'
+    binary: rgt
+    main: ./cmd/rgt/main.go
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ .Tag }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
