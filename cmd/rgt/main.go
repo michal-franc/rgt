@@ -5,12 +5,12 @@ import (
 	"os"
 )
 
-const DefaultCommand = "start"
+const defaultCommand = "start"
 
 func main() {
 	// if no command specified add in default command
 	if len(os.Args) <= 1 {
-		os.Args = append(os.Args, DefaultCommand)
+		os.Args = append(os.Args, defaultCommand)
 	}
 	commands.Execute()
 }

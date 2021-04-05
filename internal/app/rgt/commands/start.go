@@ -53,6 +53,11 @@ var startCmd = &cobra.Command{
 		done := make(chan bool)
 		lastFileWritten := ""
 		goFuncStarted := false
+		fmt.Printf("Started rgt using `%s` test runner.\n", goTestRunner)
+		if runTestsIntheSubFolder {
+			fmt.Print("sub-folder-only mode\n")
+		}
+		fmt.Println("Waiting for file changes.")
 		go func() {
 			for {
 				select {
