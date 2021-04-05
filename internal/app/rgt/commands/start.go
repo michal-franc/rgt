@@ -12,6 +12,8 @@ import (
 	"time"
 )
 
+//TODO: BUGFIX when there is no library and io cant run go test ./... then the screen is empty
+
 //TODO: global configuration and per project configuration
 
 //TODO: todo run only changed files?

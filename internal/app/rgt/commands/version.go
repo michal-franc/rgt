@@ -14,7 +14,7 @@ var Version = "local-development"
 
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "Print the go pomodoro app version.",
+	Short: "Print the rgt app version.",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println(Version)
 	},
