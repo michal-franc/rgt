@@ -12,6 +12,7 @@ import (
 	"time"
 )
 
+//TODO: First run should happen at start - we dont need to wait for file change
 //TODO: BUGFIX when there is no library and io cant run go test ./... then the screen is empty
 
 //TODO: global configuration and per project configuration
@@ -60,7 +61,6 @@ var startCmd = &cobra.Command{
 					if event.Op&fsnotify.Write == fsnotify.Write {
 						//TODO: only watch on golang files and configure ability to ignore files
 						lastFileWritten = event.Name
-
 						// We want to start goroutine block it for 1-2-3 seconds
 						// And then listen to files - there might be many events for 1 file
 						// We are only interested in one last one
@@ -97,6 +97,8 @@ var startCmd = &cobra.Command{
 									log.Fatalf("incorrect test runner specified '%s' supported [go, gotestsum]", goTestRunner)
 								}
 
+								// Make sure we get the error
+								cmd.Stderr = os.Stderr
 								out, _ := cmd.Output()
 								s.Stop()
 								fmt.Println(string(out))
