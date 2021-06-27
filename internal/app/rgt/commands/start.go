@@ -26,9 +26,12 @@ import (
 var watcher *fsnotify.Watcher
 var goTestRunner string
 var runTestsIntheSubFolder bool
+var testType string
+var supportedTypes = [...]string{"golang", "python"}
 
 func init() {
 	startCmd.Flags().StringVar(&goTestRunner, "go-test-runner", "go", "Specifies which go test runner to use.")
+	startCmd.Flags().StringVar(&testType, "test-type", "golang", fmt.Sprintf("Specifies which test runner to run supported. %s", supportedTypes))
 	startCmd.Flags().BoolVar(&runTestsIntheSubFolder, "sub-folder-only", false, "If set true will run only tests from the folder the file that is changed is.")
 	rootCmd.AddCommand(startCmd)
 }
@@ -83,19 +86,23 @@ var startCmd = &cobra.Command{
 
 								var cmd *exec.Cmd
 
-								//TODO: support for any test runner from config like gotestsum - hacky mess at the moment
-								if goTestRunner == "go" {
-									if runTestsIntheSubFolder {
-										cmd = exec.Command("go", "test")
-										cmd.Dir = extractDir(lastFileWritten)
-									} else {
-										cmd = exec.Command("go", "test", "./...")
+								if testType == "golang" {
+									//TODO: support for any test runner from config like gotestsum - hacky mess at the moment
+									if goTestRunner == "go" {
+										if runTestsIntheSubFolder {
+											cmd = exec.Command("go", "test")
+											cmd.Dir = extractDir(lastFileWritten)
+										} else {
+											cmd = exec.Command("go", "test", "./...")
+										}
+									} else if goTestRunner == "gotestsum" {
+										cmd = exec.Command(goTestRunner)
+										if runTestsIntheSubFolder {
+											cmd.Dir = extractDir(lastFileWritten)
+										}
 									}
-								} else if goTestRunner == "gotestsum" {
-									cmd = exec.Command(goTestRunner)
-									if runTestsIntheSubFolder {
-										cmd.Dir = extractDir(lastFileWritten)
-									}
+								} else {
+									cmd = exec.Command("pytest", fmt.Sprintf("./%s", *fPath))
 								}
 
 								if cmd == nil {

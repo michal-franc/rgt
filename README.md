@@ -9,7 +9,7 @@ Support for more types of files and test runners so that if I change python a py
 
 ### Current limitations
 - very basic and not optimized
-- only `GO` supported at the moment
+- only `GO`, `Python` supported at the moment
 - watches all the files - even `.git` file changes
 
 ### Usage
@@ -24,6 +24,7 @@ Commands
 rgt start
       --go-test-runner string   Specifies which go test runner to use. (default "go", supports gotestsum)
       --sub-folder-only         If set true will run only tests from the folder the file that is changed in.
+      --type string             Specifiec which type of test to start : [golang, python]
 ```
 
 ### Installation
