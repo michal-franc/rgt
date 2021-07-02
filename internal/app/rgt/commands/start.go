@@ -24,13 +24,13 @@ import (
 //TODO add viper and cobra
 
 var watcher *fsnotify.Watcher
-var goTestRunner string
+var testRunner string
 var runTestsIntheSubFolder bool
 var testType string
 var supportedTypes = [...]string{"golang", "python"}
 
 func init() {
-	startCmd.Flags().StringVar(&goTestRunner, "go-test-runner", "go", "Specifies which go test runner to use.")
+	startCmd.Flags().StringVar(&testRunner, "test-runner", "default", "Specifies which test runner to use.")
 	startCmd.Flags().StringVar(&testType, "test-type", "golang", fmt.Sprintf("Specifies which test runner to run supported. %s", supportedTypes))
 	startCmd.Flags().BoolVar(&runTestsIntheSubFolder, "sub-folder-only", false, "If set true will run only tests from the folder the file that is changed is.")
 	rootCmd.AddCommand(startCmd)
@@ -56,7 +56,7 @@ var startCmd = &cobra.Command{
 		done := make(chan bool)
 		lastFileWritten := ""
 		goFuncStarted := false
-		fmt.Printf("Started rgt using `%s` test runner.\n", goTestRunner)
+		fmt.Printf("Started rgt using `%s` test runner.\n", testRunner)
 		if runTestsIntheSubFolder {
 			fmt.Print("sub-folder-only mode\n")
 		}
@@ -88,25 +88,29 @@ var startCmd = &cobra.Command{
 
 								if testType == "golang" {
 									//TODO: support for any test runner from config like gotestsum - hacky mess at the moment
-									if goTestRunner == "go" {
+									if testRunner == "default" {
 										if runTestsIntheSubFolder {
 											cmd = exec.Command("go", "test")
 											cmd.Dir = extractDir(lastFileWritten)
 										} else {
 											cmd = exec.Command("go", "test", "./...")
 										}
-									} else if goTestRunner == "gotestsum" {
-										cmd = exec.Command(goTestRunner)
+									} else if testRunner == "gotestsum" {
+										cmd = exec.Command(testRunner)
 										if runTestsIntheSubFolder {
 											cmd.Dir = extractDir(lastFileWritten)
 										}
 									}
 								} else {
-									cmd = exec.Command("pytest", fmt.Sprintf("./%s", *fPath))
+									if testRunner == "default" {
+										cmd = exec.Command("pytest", fmt.Sprintf("./%s", *fPath))
+									} else {
+										cmd = exec.Command(testRunner, fmt.Sprintf("./%s", *fPath))
+									}
 								}
 
 								if cmd == nil {
-									log.Fatalf("incorrect test runner specified '%s' supported [go, gotestsum]", goTestRunner)
+									log.Fatalf("incorrect test runner specified '%s' supported [go, gotestsum, pytest, python]", testRunner)
 								}
 
 								// Make sure we get the error
