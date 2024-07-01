@@ -85,7 +85,6 @@ var startCmd = &cobra.Command{
 								s := spinner.New(spinner.CharSets[35], 100*time.Millisecond) // Build our new spinner
 								s.Color("red", "bold")
 								s.Start()
-								time.Sleep(100 * time.Millisecond)
 
 								var cmd *exec.Cmd
 
