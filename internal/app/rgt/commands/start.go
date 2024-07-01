@@ -14,6 +14,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+//TODO: run only changed test files
+//TODO: migrate to gotestsum --watch ??
+//TODO: add proper colors in the out
+//TODO: discover `files` and extension and based on file change run different test runner - i have two languages in the project pythong golang when i change go code i get golang test run when i change python i get python runner
 //TODO: First run should happen at start - we dont need to wait for file change
 //TODO: BUGFIX when there is no library and io cant run go test ./... then the screen is empty
 
@@ -119,6 +123,7 @@ var startCmd = &cobra.Command{
 								cmd.Stderr = os.Stderr
 								cmd.Stdout = os.Stdout
 								cmd.Run()
+								out, err := cmd.CombinedOutput()
 								s.Stop()
 								goFuncStarted = false
 							}(&lastFileWritten)
