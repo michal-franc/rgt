@@ -32,5 +32,5 @@ It was tested on `linux`.
 Download binary from github releases and unpack it to your `PATH` folder.
 Using Go Get
 ```
-go get -u github.com/michal-franc/rgt/cmd/rgt
+go install github.com/michal-franc/rgt/cmd/rgt@latest
 ```
