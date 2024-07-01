@@ -1,7 +1,9 @@
 package commands
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -9,6 +11,7 @@ import (
 	"time"
 
 	"github.com/briandowns/spinner"
+	"github.com/creack/pty"
 	"github.com/fsnotify/fsnotify"
 	"github.com/inancgumus/screen"
 	"github.com/spf13/cobra"
@@ -120,11 +123,18 @@ var startCmd = &cobra.Command{
 								}
 
 								// Make sure we get the error
-								cmd.Stderr = os.Stderr
-								cmd.Stdout = os.Stdout
-								cmd.Run()
-								out, err := cmd.CombinedOutput()
+								ptmx, err := pty.Start(cmd)
+								if err != nil {
+									fmt.Printf("Failed to start command: %s\n", err)
+								}
+								defer func() { _ = ptmx.Close() }()
+
+								var buf bytes.Buffer
+
+								_, _ = io.Copy(&buf, ptmx)
 								s.Stop()
+
+								fmt.Println(buf.String())
 								goFuncStarted = false
 							}(&lastFileWritten)
 						}
