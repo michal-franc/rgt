@@ -22,7 +22,7 @@ rgt
 Commands
 ```
 rgt start
-      --go-test-runner string   Specifies which go test runner to use. (default "go", supports gotestsum)
+      --test-runner string   Specifies which go test runner to use. (default "go", supports gotestsum)
       --sub-folder-only         If set true will run only tests from the folder the file that is changed in.
       --type string             Specifiec which type of test to start : [golang, python]
 ```

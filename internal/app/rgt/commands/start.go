@@ -115,9 +115,9 @@ var startCmd = &cobra.Command{
 
 								// Make sure we get the error
 								cmd.Stderr = os.Stderr
-								out, _ := cmd.Output()
+								cmd.Stdout = os.Stdout
+								cmd.Run()
 								s.Stop()
-								fmt.Println(string(out))
 								goFuncStarted = false
 							}(&lastFileWritten)
 						}
