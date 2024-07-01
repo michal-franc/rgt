@@ -2,14 +2,16 @@ package commands
 
 import (
 	"fmt"
-	"github.com/briandowns/spinner"
-	"github.com/fsnotify/fsnotify"
-	"github.com/spf13/cobra"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"time"
+
+	"github.com/briandowns/spinner"
+	"github.com/fsnotify/fsnotify"
+	"github.com/inancgumus/screen"
+	"github.com/spf13/cobra"
 )
 
 //TODO: First run should happen at start - we dont need to wait for file change
@@ -76,12 +78,13 @@ var startCmd = &cobra.Command{
 						// its waiting with pointer to lastFileWritten so that its dynamic but goroutine will wait
 						if !goFuncStarted {
 							go func(fPath *string) {
-								//TODO: cross platform screen clear support
-								fmt.Print("\033[H\033[2J")
+								goFuncStarted = true
+
+								screen.Clear()
+								screen.MoveTopLeft()
 								s := spinner.New(spinner.CharSets[35], 100*time.Millisecond) // Build our new spinner
 								s.Color("red", "bold")
 								s.Start()
-								goFuncStarted = true
 								time.Sleep(100 * time.Millisecond)
 
 								var cmd *exec.Cmd
