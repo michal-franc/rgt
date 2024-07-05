@@ -34,6 +34,7 @@ import (
 
 var watcher *fsnotify.Watcher
 var testRunner string
+var testNames string
 var runTestsIntheSubFolder bool
 var testType string
 var supportedTypes = [...]string{"golang", "python"}
@@ -41,6 +42,7 @@ var supportedTypes = [...]string{"golang", "python"}
 func init() {
 	startCmd.Flags().StringVar(&testRunner, "test-runner", "default", "Specifies which test runner to use.")
 	startCmd.Flags().StringVar(&testType, "test-type", "golang", fmt.Sprintf("Specifies which test runner to run supported. %s", supportedTypes))
+	startCmd.Flags().StringVar(&testNames, "test-name", "", fmt.Sprintf("Language/tool specific value to filter out tests to run. %s", supportedTypes))
 	startCmd.Flags().BoolVar(&runTestsIntheSubFolder, "sub-folder-only", false, "If set true will run only tests from the folder the file that is changed is.")
 	rootCmd.AddCommand(startCmd)
 }
@@ -99,10 +101,10 @@ var startCmd = &cobra.Command{
 									//TODO: support for any test runner from config like gotestsum - hacky mess at the moment
 									if testRunner == "default" {
 										if runTestsIntheSubFolder {
-											cmd = exec.Command("go", "test")
+											cmd = exec.Command("go", "test", "-run="+testNames)
 											cmd.Dir = extractDir(lastFileWritten)
 										} else {
-											cmd = exec.Command("go", "test", "./...")
+											cmd = exec.Command("go", "test", "./...", "-run="+testNames)
 										}
 									} else if testRunner == "gotestsum" {
 										cmd = exec.Command(testRunner)
