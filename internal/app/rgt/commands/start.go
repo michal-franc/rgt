@@ -71,6 +71,8 @@ var startCmd = &cobra.Command{
 		if runTestsIntheSubFolder {
 			fmt.Print("sub-folder-only mode\n")
 		}
+
+		runTests(lastFileWritten)
 		fmt.Println("Waiting for file changes.")
 		go func() {
 			for {
@@ -89,54 +91,8 @@ var startCmd = &cobra.Command{
 							go func(fPath *string) {
 								goFuncStarted = true
 
-								screen.Clear()
-								screen.MoveTopLeft()
-								s := spinner.New(spinner.CharSets[35], 100*time.Millisecond) // Build our new spinner
-								s.Color("red", "bold")
-								s.Start()
+								runTests(*fPath)
 
-								var cmd *exec.Cmd
-
-								if testType == "golang" {
-									//TODO: support for any test runner from config like gotestsum - hacky mess at the moment
-									if testRunner == "default" {
-										if runTestsIntheSubFolder {
-											cmd = exec.Command("go", "test", "-run="+testNames)
-											cmd.Dir = extractDir(lastFileWritten)
-										} else {
-											cmd = exec.Command("go", "test", "./...", "-run="+testNames)
-										}
-									} else if testRunner == "gotestsum" {
-										cmd = exec.Command(testRunner)
-										if runTestsIntheSubFolder {
-											cmd.Dir = extractDir(lastFileWritten)
-										}
-									}
-								} else {
-									if testRunner == "default" {
-										cmd = exec.Command("pytest", fmt.Sprintf("./%s", *fPath))
-									} else {
-										cmd = exec.Command(testRunner, fmt.Sprintf("./%s", *fPath))
-									}
-								}
-
-								if cmd == nil {
-									log.Fatalf("incorrect test runner specified '%s' supported [go, gotestsum, pytest, python]", testRunner)
-								}
-
-								// Make sure we get the error
-								ptmx, err := pty.Start(cmd)
-								if err != nil {
-									fmt.Printf("Failed to start command: %s\n", err)
-								}
-								defer func() { _ = ptmx.Close() }()
-
-								var buf bytes.Buffer
-
-								_, _ = io.Copy(&buf, ptmx)
-								s.Stop()
-
-								fmt.Println(buf.String())
 								goFuncStarted = false
 							}(&lastFileWritten)
 						}
@@ -151,6 +107,57 @@ var startCmd = &cobra.Command{
 
 		<-done
 	},
+}
+
+func runTests(fPath string) {
+	screen.Clear()
+	screen.MoveTopLeft()
+	s := spinner.New(spinner.CharSets[35], 100*time.Millisecond) // Build our new spinner
+	s.Color("red", "bold")
+	s.Start()
+
+	var cmd *exec.Cmd
+
+	if testType == "golang" {
+		//TODO: support for any test runner from config like gotestsum - hacky mess at the moment
+		if testRunner == "default" {
+			if runTestsIntheSubFolder {
+				cmd = exec.Command("go", "test", "-run="+testNames)
+				cmd.Dir = extractDir(fPath)
+			} else {
+				cmd = exec.Command("go", "test", "./...", "-run="+testNames)
+			}
+		} else if testRunner == "gotestsum" {
+			cmd = exec.Command(testRunner)
+			if runTestsIntheSubFolder {
+				cmd.Dir = extractDir(fPath)
+			}
+		}
+	} else {
+		if testRunner == "default" {
+			cmd = exec.Command("pytest", fmt.Sprintf("./%s", fPath))
+		} else {
+			cmd = exec.Command(testRunner, fmt.Sprintf("./%s", fPath))
+		}
+	}
+
+	if cmd == nil {
+		log.Fatalf("incorrect test runner specified '%s' supported [go test, gotestsum, pytest]", testRunner)
+	}
+
+	// Make sure we get the error
+	ptmx, err := pty.Start(cmd)
+	if err != nil {
+		fmt.Printf("Failed to start command: %s\n", err)
+	}
+	defer func() { _ = ptmx.Close() }()
+
+	var buf bytes.Buffer
+
+	_, _ = io.Copy(&buf, ptmx)
+	s.Stop()
+
+	fmt.Println(buf.String())
 }
 
 func extractDir(fPath string) string {
