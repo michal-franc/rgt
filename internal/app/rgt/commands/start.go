@@ -39,6 +39,12 @@ var runTestsIntheSubFolder bool
 var testType string
 var supportedTypes = [...]string{"golang", "python"}
 
+// Map of test types to their file extensions
+var testTypeExtensions = map[string][]string{
+	"golang": {".go"},
+	"python": {".py"},
+}
+
 func init() {
 	startCmd.Flags().StringVar(&testRunner, "test-runner", "default", "Specifies which test runner to use.")
 	startCmd.Flags().StringVar(&testType, "test-type", "golang", fmt.Sprintf("Specifies which test runner to run supported. %s", supportedTypes))
@@ -73,14 +79,18 @@ var startCmd = &cobra.Command{
 		}
 
 		runTests(lastFileWritten)
-		fmt.Println("Waiting for file changes.")
+		fmt.Println("Waiting for file changes...")
 		go func() {
 			for {
 				select {
 				// watch for events
 				case event := <-watcher.Events:
 					if event.Op&fsnotify.Write == fsnotify.Write {
-						//TODO: only watch on golang files and configure ability to ignore files
+						// Filter by file extension based on test type
+						if !shouldProcessFile(event.Name, testType) {
+							continue
+						}
+
 						lastFileWritten = event.Name
 						// We want to start goroutine block it for 1-2-3 seconds
 						// And then listen to files - there might be many events for 1 file
@@ -92,6 +102,7 @@ var startCmd = &cobra.Command{
 								goFuncStarted = true
 
 								runTests(*fPath)
+								fmt.Println("Waiting for file changes...")
 
 								goFuncStarted = false
 							}(&lastFileWritten)
@@ -112,6 +123,11 @@ var startCmd = &cobra.Command{
 func runTests(fPath string) {
 	screen.Clear()
 	screen.MoveTopLeft()
+
+	if fPath != "" {
+		fmt.Printf("File changed: %s\n\n", fPath)
+	}
+
 	s := spinner.New(spinner.CharSets[35], 100*time.Millisecond) // Build our new spinner
 	s.Color("red", "bold")
 	s.Start()
@@ -169,4 +185,22 @@ func watchDir(path string, fi os.FileInfo, err error) error {
 		return watcher.Add(path)
 	}
 	return nil
+}
+
+// shouldProcessFile checks if a file should trigger tests based on its extension and test type
+func shouldProcessFile(filePath string, testType string) bool {
+	fileExt := filepath.Ext(filePath)
+	extensions, ok := testTypeExtensions[testType]
+
+	// If test type not found, process all files (backward compatible)
+	if !ok {
+		return true
+	}
+
+	for _, ext := range extensions {
+		if fileExt == ext {
+			return true
+		}
+	}
+	return false
 }

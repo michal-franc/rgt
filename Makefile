@@ -10,6 +10,9 @@ test-slow: build
 test-fast: build
 	./bin/rgt start --test-name TestFast
 
+e2e-test: build
+	./test_e2e.sh
+
 fmt:
 	go fmt ./...
 
