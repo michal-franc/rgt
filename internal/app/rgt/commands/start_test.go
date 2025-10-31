@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"os"
 	"testing"
 )
 
@@ -58,6 +59,12 @@ func TestShouldProcessFile(t *testing.T) {
 		{"file without extension python", "Dockerfile", "python", false},
 		{"hidden go file", ".hidden.go", "golang", true},
 		{"hidden py file", ".hidden.py", "python", true},
+
+		// "all" test type (new functionality)
+		{"go file with all type", "main.go", "all", true},
+		{"py file with all type", "test.py", "all", true},
+		{"non-code file with all type", "README.md", "all", false},
+		{"txt file with all type", "file.txt", "all", false},
 	}
 
 	for _, tt := range tests {
@@ -65,6 +72,64 @@ func TestShouldProcessFile(t *testing.T) {
 			got := shouldProcessFile(tt.filePath, tt.testType)
 			if got != tt.want {
 				t.Errorf("shouldProcessFile(%q, %q) = %v, want %v", tt.filePath, tt.testType, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestDetectProjectFileTypes(t *testing.T) {
+	// Test using actual test directories we created
+	tests := []struct {
+		name       string
+		dir        string
+		wantGolang bool
+		wantPython bool
+	}{
+		{
+			name:       "go only directory",
+			dir:        "/tmp/rgt-test-scenarios/go-only",
+			wantGolang: true,
+			wantPython: false,
+		},
+		{
+			name:       "python only directory",
+			dir:        "/tmp/rgt-test-scenarios/py-only",
+			wantGolang: false,
+			wantPython: true,
+		},
+		{
+			name:       "both go and python files",
+			dir:        "/tmp/rgt-test-scenarios/both",
+			wantGolang: true,
+			wantPython: true,
+		},
+		{
+			name:       "empty directory",
+			dir:        "/tmp/rgt-test-scenarios/empty",
+			wantGolang: false,
+			wantPython: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Change to test directory
+			origDir, _ := os.Getwd()
+			defer os.Chdir(origDir)
+
+			err := os.Chdir(tt.dir)
+			if err != nil {
+				t.Skipf("Test directory not available: %s", tt.dir)
+				return
+			}
+
+			got := detectProjectFileTypes()
+
+			if got["golang"] != tt.wantGolang {
+				t.Errorf("detectProjectFileTypes() golang = %v, want %v", got["golang"], tt.wantGolang)
+			}
+			if got["python"] != tt.wantPython {
+				t.Errorf("detectProjectFileTypes() python = %v, want %v", got["python"], tt.wantPython)
 			}
 		})
 	}

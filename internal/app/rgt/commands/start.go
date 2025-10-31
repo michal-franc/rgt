@@ -57,6 +57,11 @@ var startCmd = &cobra.Command{
 	Use:   "start",
 	Short: "Start auto test runner",
 	Run: func(cmd *cobra.Command, args []string) {
+		// If --test-type flag was not explicitly set, run interactive mode
+		if !cmd.Flags().Changed("test-type") {
+			detectAndPromptTestType()
+		}
+
 		watcher, _ = fsnotify.NewWatcher()
 		defer watcher.Close()
 
@@ -190,6 +195,19 @@ func watchDir(path string, fi os.FileInfo, err error) error {
 // shouldProcessFile checks if a file should trigger tests based on its extension and test type
 func shouldProcessFile(filePath string, testType string) bool {
 	fileExt := filepath.Ext(filePath)
+
+	// Handle "all" test type - check against all known extensions
+	if testType == "all" {
+		for _, extensions := range testTypeExtensions {
+			for _, ext := range extensions {
+				if fileExt == ext {
+					return true
+				}
+			}
+		}
+		return false
+	}
+
 	extensions, ok := testTypeExtensions[testType]
 
 	// If test type not found, process all files (backward compatible)
@@ -203,4 +221,111 @@ func shouldProcessFile(filePath string, testType string) bool {
 		}
 	}
 	return false
+}
+
+// detectProjectFileTypes scans the current directory for .go and .py files
+func detectProjectFileTypes() map[string]bool {
+	found := map[string]bool{
+		"golang": false,
+		"python": false,
+	}
+
+	filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+
+		// Skip hidden directories (but not current dir) and common ignore paths
+		if info.IsDir() && path != "." {
+			if (len(info.Name()) > 0 && info.Name()[0] == '.') || info.Name() == "vendor" || info.Name() == "node_modules" {
+				return filepath.SkipDir
+			}
+		}
+
+		ext := filepath.Ext(path)
+		if ext == ".go" {
+			found["golang"] = true
+		} else if ext == ".py" {
+			found["python"] = true
+		}
+
+		// Early exit if both types found
+		if found["golang"] && found["python"] {
+			return filepath.SkipAll
+		}
+
+		return nil
+	})
+
+	return found
+}
+
+// detectAndPromptTestType detects available file types and prompts user for selection
+func detectAndPromptTestType() {
+	fmt.Println("Detecting project files...")
+	detected := detectProjectFileTypes()
+
+	foundTypes := []string{}
+	if detected["golang"] {
+		foundTypes = append(foundTypes, "Golang")
+	}
+	if detected["python"] {
+		foundTypes = append(foundTypes, "Python")
+	}
+
+	// No test files found
+	if len(foundTypes) == 0 {
+		fmt.Println("❌ No Go or Python files found in project.")
+		fmt.Println("Exiting...")
+		os.Exit(1)
+	}
+
+	// Only one type found - auto-select but confirm
+	if len(foundTypes) == 1 {
+		typeFound := "golang"
+		if detected["python"] {
+			typeFound = "python"
+		}
+		fmt.Printf("✓ Project checked: found %s files only\n", foundTypes[0])
+		fmt.Printf("Auto-selecting %s test runner.\n", foundTypes[0])
+		fmt.Print("Press Enter to continue...")
+		fmt.Scanln()
+		testType = typeFound
+		return
+	}
+
+	// Both types found - show menu
+	fmt.Printf("✓ Project checked: found %s and %s files\n", foundTypes[0], foundTypes[1])
+	fmt.Println("\nPlease select test runner:")
+	fmt.Println("  1) Golang")
+	fmt.Println("  2) Python")
+	fmt.Println("  3) All (watch both)")
+	fmt.Print("\nYour choice (1-3): ")
+
+	var choice int
+	for {
+		_, err := fmt.Scanf("%d", &choice)
+		if err != nil {
+			fmt.Scanf("%s", new(string)) // Clear input buffer
+			fmt.Print("Invalid input. Please enter 1, 2, or 3: ")
+			continue
+		}
+
+		switch choice {
+		case 1:
+			testType = "golang"
+			fmt.Println("→ Selected: Golang")
+			return
+		case 2:
+			testType = "python"
+			fmt.Println("→ Selected: Python")
+			return
+		case 3:
+			testType = "all"
+			fmt.Println("→ Selected: All (watching both Go and Python files)")
+			return
+		default:
+			fmt.Print("Invalid choice. Please enter 1, 2, or 3: ")
+		}
+	}
 }
